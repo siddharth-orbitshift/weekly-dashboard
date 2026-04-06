@@ -78,6 +78,9 @@ export default function Dashboard() {
   const [npsLoading, setNpsLoading] = useState(false);
   const [npsError, setNpsError] = useState<string | undefined>();
 
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | undefined>();
+
   useEffect(() => {
     fetch('/api/tenants')
       .then((r) => r.json())
@@ -135,6 +138,22 @@ export default function Dashboard() {
       .finally(() => setNpsLoading(false));
   }, [tenants, selectedTenantId, pilotFilter]);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setRefreshError(undefined);
+    try {
+      const res = await fetch('/api/amplitude/refresh', { method: 'POST' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (data.cachedAt) setAmplitudeCachedAt(data.cachedAt);
+    } catch (e) {
+      setRefreshError(e instanceof Error ? e.message : 'Refresh failed');
+    } finally {
+      setRefreshing(false);
+    }
+    fetchData();
+  }, [fetchData]);
+
   useEffect(() => {
     if (tenants.length === 0) return;
     fetchData();
@@ -155,12 +174,33 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">Weekly Dashboard</h1>
-          <button
-            onClick={fetchData}
-            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-3 py-1.5 rounded-lg border border-indigo-200 hover:border-indigo-400 transition-colors"
-          >
-            Refresh
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              {refreshing ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Refreshing…
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.635 19A9 9 0 1019 13.364" />
+                  </svg>
+                  Refresh Amplitude & NPS
+                </>
+              )}
+            </button>
+            {refreshError && (
+              <span className="text-xs text-red-500">{refreshError}</span>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-3 items-center">
