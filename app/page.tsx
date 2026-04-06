@@ -64,6 +64,7 @@ export default function Dashboard() {
 
   const [wau, setWau] = useState<ChartData | null>(null);
   const [mau, setMau] = useState<ChartData | null>(null);
+  const [amplitudeCachedAt, setAmplitudeCachedAt] = useState<string | undefined>();
   const [wauLoading, setWauLoading] = useState(false);
   const [mauLoading, setMauLoading] = useState(false);
   const [wauError, setWauError] = useState<string | undefined>();
@@ -95,6 +96,7 @@ export default function Dashboard() {
       .then((d) => {
         if (d.error) throw new Error(d.error);
         setWau(d);
+        if (d.cachedAt) setAmplitudeCachedAt(d.cachedAt);
       })
       .catch((e) => setWauError(e.message))
       .finally(() => setWauLoading(false));
@@ -206,12 +208,14 @@ export default function Dashboard() {
             data={toChartData(wau)}
             loading={wauLoading}
             error={wauError}
+            cachedAt={amplitudeCachedAt}
           />
           <ActivityChart
             title="Monthly Active Users"
             data={toChartData(mau)}
             loading={mauLoading}
             error={mauError}
+            cachedAt={amplitudeCachedAt}
           />
         </div>
 

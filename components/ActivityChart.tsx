@@ -15,12 +15,22 @@ interface Props {
   data: { label: string; value: number }[];
   loading: boolean;
   error?: string;
+  cachedAt?: string;
 }
 
-export default function ActivityChart({ title, data, loading, error }: Props) {
+export default function ActivityChart({ title, data, loading, error, cachedAt }: Props) {
+  const cacheLabel = cachedAt
+    ? new Date(cachedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{title}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{title}</h2>
+        {cacheLabel && (
+          <span className="text-xs text-gray-400">cached {cacheLabel}</span>
+        )}
+      </div>
       {loading ? (
         <div className="h-48 flex items-center justify-center text-gray-400 text-sm">
           Loading…
