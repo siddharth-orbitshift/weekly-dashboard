@@ -1,22 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getActiveUsers } from '@/lib/amplitude';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+interface AmplitudeCache {
+  cachedAt: string;
+  wau: { xValues: string[]; values: number[] };
+  mau: { xValues: string[]; values: number[] };
+}
+
+function readCache(): AmplitudeCache {
+  const cachePath = join(process.cwd(), 'data', 'amplitude-cache.json');
+  const raw = readFileSync(cachePath, 'utf-8');
+  return JSON.parse(raw);
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const metric = (searchParams.get('metric') ?? 'wau') as 'wau' | 'mau';
-  const tenantIdsParam = searchParams.get('tenantIds');
-
-  const tenantIds = tenantIdsParam
-    ? tenantIdsParam.split(',').map(Number).filter(Boolean)
-    : undefined;
 
   try {
-    const data = await getActiveUsers(metric, tenantIds);
-    return NextResponse.json(data);
+    const cache = readCache();
+    const data = metric === 'wau' ? cache.wau : cache.mau;
+    return NextResponse.json({ ...data, cachedAt: cache.cachedAt });
   } catch (err) {
-    console.error('Amplitude API error:', err);
+    console.error('Amplitude cache read error:', err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Amplitude error' },
+      { error: 'Amplitude data unavailable — refresh the cache via the scheduled agent.' },
       { status: 500 }
     );
   }
